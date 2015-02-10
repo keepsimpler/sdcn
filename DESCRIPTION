@@ -1,9 +1,23 @@
 Package: sdcn
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: Structures and Dynamics on (of) Complex Networks (sdcn)
+Version: 0.0.0.9000
 Date: 2015-02-05
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
+Author: Wenfeng Feng
+Maintainer: Wenfeng Feng <fengwenfeng@gmail.com>
+Description: The package intends to implement general simulation of dynamics on (of) networks
+    which have different structural features. The current goal is to simuate ecological interactions
+    among species in ecological networks, as the first instance of complex networks.
+    Modules should include:
+    1) Dynamic models. Holling Type I, II dynamic models should be implemented for 
+       mutualistic networks, food webs, competitive networks, and mixed networks.
+    2) Environmental Perturbations. Two types of perturbations: continuously pressed env.
+       and repeated pulsed env. (stochastics). The perturbations can effect not only on
+       (all or part of) species(nodes) but also on (all or part of) interactions(links).
+    3) Null models of different structural features such as degree heterogeneity and modularity.
+    4) Analysis of simulation results. 
+    5) Fit of empirical data?
+Imports:
+    deSolve (>= 1.10-8),
+    rootSolve (>= 1.6.5)
 License: What license is it under?
