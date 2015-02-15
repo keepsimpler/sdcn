@@ -17,7 +17,10 @@ Description: The package intends to implement general simulation of dynamics on 
     3) Null models of different structural features such as degree heterogeneity and modularity.
     4) Analysis of simulation results. 
     5) Fit of empirical data?
-Imports:
+Imports: 
     deSolve (>= 1.10-8),
+    simecol (>= 0.8-4),
     rootSolve (>= 1.6.5)
 License: What license is it under?
+Suggests: knitr
+VignetteBuilder: knitr
