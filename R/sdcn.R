@@ -11,7 +11,7 @@
 #' \code{\link{swaplinks}}
 #'
 #' @section Dynamics functions:
-#' \code{\link{model.lv2}}
+#' \code{\link{model_lv2}, \link{parms_lv2}}
 #'
 #' @docType package
 #' @name sdcn

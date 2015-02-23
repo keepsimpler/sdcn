@@ -1,10 +1,18 @@
 ###############################################################################
 #' @title Swapping links Algorithm for null model of bipartite networks, that generates random network (ensembles) which keep the node degree distribution of a real network.
 #' @param bigraph, incidence matrix of a bipartite network, rows and cols represent two groups of nodes/species
-#' @param ntry, the possible maximum times of swapping links to try
+#' @param ntry, the maximum possible times of swapping links to try
 #' @return an incidence matrix of bipartite network whose links being randomly swapped.
 #' @examples 
-#' swaplinks(bigraph)
+#' \dontrun{
+#' require(bipartite) # for plot
+#' data(M_PL_003)
+#' # M_PL_003 <- as.matrix(M_PL_003)
+#' bipartite::visweb(M_PL_003)
+#' M_PL_003.rand = swaplinks(M_PL_003)
+#' bipartite::visweb(M_PL_003.rand)
+#' }
+#' 
 swaplinks <- function(bigraph, ntry = 5000) {
   count1 <- 0
   B <- bigraph
@@ -37,4 +45,3 @@ swaplinks <- function(bigraph, ntry = 5000) {
   }
   return(B)
 }
-
