@@ -3,7 +3,7 @@ Type: Package
 Title: Structures and Dynamics on (of) Complex Networks (sdcn)
 Version: 0.0.0.9000
 Date: 2015-02-10
-Author: Wenfeng Feng, Richard Bailey, Kirsty McGregor
+Author: 
 Maintainer: Wenfeng Feng <fengwenfeng@gmail.com>
 Description: The package intends to implement general simulation of dynamics on (of) networks
     which have different structural features. The current goal is to simuate ecological interactions
