@@ -174,7 +174,7 @@ perturb_growthrate <- function(parms, nstar, r.delta = 0.01) {
 #' @return resistance measured by the length of community trajectory
 #' @return fragility measured by the variance of community trajectory
 fragility <- function(sim.out) {
-  trajectory = laply(B, function(one) {
+  trajectory = laply(sim.out, function(one) {
     length(one$extinct.species)
   })
   trajectory = trajectory[-1] - trajectory[-length(trajectory)]
