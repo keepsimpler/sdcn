@@ -3,7 +3,7 @@ title: "Structures and Dynamics on (of) Complex Networks (sdcn). I Ecosystems"
 author: "Authors"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
-bibliography: library-mendeley.bib
+bibliography: library-zotero.bib
 csl: nature.csl
 vignette: >
   %\VignetteIndexEntry{Structures and Dynamics on (of) Complex Networks (sdcn).
@@ -11,6 +11,8 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
+
+[//]: rmarkdown::render('vignettes/my-vignette.Rmd', 'pdf_document') R CMD Rd2pdf sdcn
 
 ```{r set-options, echo=FALSE, cache=FALSE}
 options(width=85)
@@ -23,7 +25,7 @@ Modules should include:
 
 * Null models of different structural features such as degree heterogeneity and modularity.
 * Dynamic models. Holling Type I, II dynamic models should be implemented for mutualistic networks, food webs, competitive networks, and mixed networks.
-* Environmental Perturbations. Two types of perturbations: continuously pressed env. and repeated pulsed env. (stochastics). The perturbations can effect not only on (all or part of) species(nodes) but also on (all or part of) interactions(links).
+* Environmental Perturbations. Two types of perturbations: continuously pressed env. and repeated pulsed env. (stochastic). The perturbations can effect not only on (all or part of) species(nodes) but also on (all or part of) interactions(links).
 * Analysis of simulation results. 
 * Fit of empirical data?
 
@@ -31,7 +33,7 @@ Modules should include:
 The null model of a graph is a randomized version of the original graph. A null model graph matches with the original graph in some of its structural features such as degree distribution or modularity, but is otherwise a completed random graph.
 Null models of graphs (can) not only serve to identify non-random patterns in real networks, but also highlight(disclose/evaluate) dynamical effects of those patterns.
 
-We impelement a null model function for bipartite graphs. A local rewiring algorithm is applied iteratively to generate a null model graph, which keep the degree distribution of the original graph and is otherwise random as much as possible. [@Squartini2011]
+We implement a null model function for bipartite graphs. A local rewiring algorithm is applied iteratively to generate a null model graph, which keep the degree distribution of the original graph and is otherwise random as much as possible. [@Squartini2011]
 
 ```{r}
 require(sdcn)
@@ -44,28 +46,32 @@ bipartite::visweb(M_PL_003.rand)
 
 ```
 
-### Degree Heterogeneity
+### Degree Heterogeneity ...
 
 ## Dynamics of Ecological Communities
 
-All ecological communities consist of (are made up of) large number of species that interact in myriad (many kinds of) ways with each other. Also all the interacting species in a ecological community are effected by environments such as climate change, and haman activities.
+All ecological communities consist of (are made up of) large number of species that interact in myriad (many kinds of) ways with each other. Also all the interacting species in a ecological community are effected by environments such as climate change, and human activities.
 
 How the abundances of species change over time is determined by the complex interactions among species, and the effects of environments on the species. Evolution processes ultimately shape the nature of species interactions and species reaction against environments, that further select survived species.
 
-The dynamics of ecological communities is too much complex that it's necessary to simplify some aspects of them [@godfray_open_2014]. Models of dynamics of ecological communities were provided such as ODE models that describe dynamics in deterministic environments, SDE models that describe dynamics in stochastic environments, meta-community and meta-population models that highlight the spacial heterogeneity between communities and populations, individual-based models that emphasize the individuals rather than the population of species.
+The dynamics of ecological communities is so complex that it's necessary to simplify some aspects of them [@godfray_open_2014]. Models of dynamics of ecological communities were provided such as ODE models that describe dynamics in deterministic environments, SDE models that describe dynamics in stochastic environments, meta-community and meta-population models that highlight the spacial heterogeneity among communities and populations, individual-based models that emphasize the individuals rather than the population of species.
 
 Different models describe different aspects of ecosystems, and can disclose different aspects of resilience (stability) of ecosystems.
 
 We first implement the ODE model of ecological communities.
 
 ## A Example of simulation of dynamics of mutualistic communities
+The coefficients are same with [@lever_sudden_2014] and [@saavedra_estimating_2013]
+
 ```{r}
 library(sdcn)
 library(deSolve)
 library(rootSolve)
 library(plyr)
 graph <- as.matrix(M_PL_003)
-coeff <- list(alpha.mu = 0.2, alpha.sd = 0.15, beta0.mu = 0.95, beta0.sd = 0.15, beta1.mu = 0.03, beta1.sd = 0.02, gamma.mu = 1, gamma.sd = 0.2, h.mu = 0.2, h.sd = 0.1, delta = 0.5)
+coeff <- list(alpha.mu = 0.2, alpha.sd = 0.15, beta0.mu = 0.95, beta0.sd = 0.15, 
+              beta1.mu = 0.03, beta1.sd = 0.02, gamma.mu = 1, gamma.sd = 0.2, h.mu = 0.2, h.sd = 0.1, 
+              delta = 0.5)  # same with [@saavedra_estimating_2013]
 
 parms <- parms_lv2(graph, coeff)
 init <- init_lv2(parms)
@@ -75,7 +81,7 @@ extinct_threshold <- .Machine$double.eps * 100  # threshold of species
 A = sim_ode_auto(model = model_lv2, parms = parms, init = init, steps = 1000, stepwise = 0.1, extinct_threshold = extinct_threshold)
 matplot(A$out[1:1000, -1], type = 'l', lwd = 1.)
 
-B = sim_ode_press(model = model_lv2, parms = parms, init = init, steps = 1000, stepwise = 0.1, extinct_threshold = extinct_threshold, perturb = perturb_growthrate, iter_steps = 150, isout = T, r.delta = 0.005)
+B = sim_ode_press(model = model_lv2, parms = parms, init = init, steps = 1000, stepwise = 0.1, extinct_threshold = extinct_threshold, perturb = perturb_growthrate, iter_steps = 120, isout = T, r.delta = 0.005)
 ode.nstars = laply(B, function(one) {
   one$nstar
 })

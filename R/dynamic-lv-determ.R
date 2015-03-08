@@ -83,7 +83,15 @@ init_lv2 <- function(parms) {
 #' @param stepwise step length
 #' @param extinct_threshold abundance threshold, species with abundance less than that is considered to be exintct 
 #' @return a list of:
-#' 
+#' \describe{
+#'   \item{out}{output of one ODE simulation, including the trajectory of values of state variables}
+#'   \item{nstar}{the values of state variables in equilibrium}
+#'   \item{Phi}{the Jacobian matrix in equilibrium}
+#'   \item{model}{model of ODE dynamics}
+#'   \item{parms}{parameters assigned to the model}
+#'   \item{extinct}{number of extinct species}
+#'   \item{survived}{number of survived species}
+#' }
 sim_ode_auto <- function(model, parms, init, steps = 1000, stepwise = 1, extinct_threshold) {
   times = seq(from = 0, to = steps * stepwise, by = stepwise)
   ode.out = ode(init, times, model, parms)
@@ -99,10 +107,18 @@ sim_ode_auto <- function(model, parms, init, steps = 1000, stepwise = 1, extinct
 #' @title Simulate ODE dynamics of non-autonomous systems.A example is ecosystems under "press" perturbations. The dynamic is iteration of successive ODE dynamics of automous sytems (\code{\link{sim_ode_auto}}), while at each iterating step, the parameters and/or state values of systems are changed to reflect "press" perturbations.
 #' @inheritParams sim_ode_auto
 #' @param perturb a function that change the parameters and state values after each iteration step
-#' @param iter_steps iteration steps
+#' @param iter_steps possiblely maximum iteration steps
 #' @param isout if output the transiting trajectory of each ODE iterate step
 #' @param ... any arguments which are transfered to perturbation function
-sim_ode_press <- function(model, parms, init, steps = 1000, stepwise = 1, extinct_threshold, perturb, iter_steps = 10, isout = TRUE, ...) {
+#' @return a list of lists :
+#' \describe{
+#'   \item{out}{output of one ODE simulation, including the trajectory of values of state variables}
+#'   \item{nstar}{the values of state variables in equilibrium}
+#'   \item{Phi}{the Jacobian matrix in equilibrium}
+#'   \item{parms}{parameters assigned to the model}
+#'   \item{extinct.species}{a vector of species that extincted}
+#' }
+sim_ode_press <- function(model, parms, init, steps = 1000, stepwise = 1, extinct_threshold, perturb, iter_steps = 500, isout = TRUE, ...) {
   times = seq(from = 0, to = steps * stepwise, by = stepwise)
   ode.outs = list()
   for(i in 1:iter_steps) {
@@ -111,15 +127,24 @@ sim_ode_press <- function(model, parms, init, steps = 1000, stepwise = 1, extinc
     nstar = as.numeric(ode.out[nrow(ode.out), 2:ncol(ode.out)]) # species biomass at equilibrium
     nstar[nstar < extinct_threshold] = 0  # species with biomass less than extinct threshold is considered to be extinct
     extinct.species = which(nstar == 0)  # extinct species
-    
+
+    flag = 0
+    # if all species are extinct, will end the simulation
+    if (length(nstar) == length(extinct.species)) flag = 1
+    # if any species' abundance is NaN, that means the ODE dynamic is unstable, the simulation will also be ended
+    if (any(is.nan(nstar))) flag = 2
+
     Phi = jacobian.full(y = nstar, func = model, parms = parms) # community matrix, Jacobian matrix at equilibrium
     if (isout) {
-      ret = list(out = ode.out, nstar = nstar, Phi = Phi, params = parms, extinct.species = extinct.species)
+      ret = list(out = ode.out, nstar = nstar, Phi = Phi, params = parms, extinct.species = extinct.species, flag = flag)
     }
     else {
-      ret = list(nstar = nstar, Phi = Phi, params = parms, extinct.species = extinct.species)
+      ret = list(nstar = nstar, Phi = Phi, params = parms, extinct.species = extinct.species, flag = flag)
     }
     ode.outs[[length(ode.outs) + 1]] = ret
+    # if all species are extinct, end the simulation
+    if (flag == 1 || flag == 2)
+      break;
     
     #     if (length(extinct.species) > 0) {
     #       ret = remove.species(parms, nstar, extinct.species)
@@ -144,5 +169,26 @@ perturb_growthrate <- function(parms, nstar, r.delta = 0.01) {
   list(parms = parms, nstar = nstar)
 }
 
+#' @title compute fragility of mutualistic communities in gradual pressed context
+#' @param sim.out output of simulation under gradual pressed conditions (\code{\link{sim_ode_press}})
+#' @return resistance measured by the length of community trajectory
+#' @return fragility measured by the variance of community trajectory
+fragility <- function(sim.out) {
+  trajectory = laply(B, function(one) {
+    length(one$extinct.species)
+  })
+  trajectory = trajectory[-1] - trajectory[-length(trajectory)]
+  fragility = sum(trajectory^2)
+  fragility
+}
 
+#' @title compute resistance of mutualistic communities in gradual pressed context
+#' @param sim.out output of simulation under gradual pressed conditions (\code{\link{sim_ode_press}})
+#' @return resistance measured by the length of community trajectory
+resistance <- function(sim.out) {
+  length(sim.out)
+}
+
+
+# random simulation times
 

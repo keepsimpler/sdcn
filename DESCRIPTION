@@ -20,7 +20,8 @@ Description: The package intends to implement general simulation of dynamics on 
 Imports: 
     deSolve (>= 1.10-8),
     simecol (>= 0.8-4),
-    rootSolve (>= 1.6.5)
+    rootSolve (>= 1.6.5),
+    plyr (>= 1.8.1)
 License: What license is it under?
 Suggests: knitr,
     testthat
