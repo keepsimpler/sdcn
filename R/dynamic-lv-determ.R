@@ -54,8 +54,11 @@ parms_lv2 <- function(graph, coeff) {
     M = inc_to_adj(graph)  # transfer to adjacency matrix
     degrees = rowSums(M)  # 
     M[M > 0] = runif(2 * edges) * 2 * gamma.sd + (gamma.mu - gamma.sd)  # assign inter-species mutualistic interactions
+    old_total_strength = sum(M)
     ## !leak!
     M = M / degrees^delta  # trade-off of mutualistic strengths
+    new_total_strength = sum(M)
+    M = M * old_total_strength / new_total_strength
     
     h = runif(s) * 2 * h.sd + (h.mu - h.sd)
     list(r = r, C = C, M = M, h = h)     
