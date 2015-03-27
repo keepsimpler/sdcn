@@ -12,7 +12,6 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-[//]: rmarkdown::render('vignettes/my-vignette.Rmd', 'pdf_document') R CMD Rd2pdf sdcn
 
 ```{r set-options, echo=FALSE, cache=FALSE}
 options(width=85)
@@ -68,20 +67,28 @@ library(sdcn)
 library(deSolve)
 library(rootSolve)
 library(plyr)
-graph <- as.matrix(M_PL_003)
+# the mutualistic network is a empirical network
+mutual_graph <- as.matrix(M_PL_003)
+s1 = dim(mutual_graph)[1]
+s2 = dim(mutual_graph)[2]
+mutual_graph <- inc_to_adj(mutual_graph)
+# the competitive network include two sub-networks
+competitive_graph <- matrix(0, nrow = s1 + s2, ncol = s1 + s2)
+competitive_graph[1:s1, 1:s1] = 1
+competitive_graph[(s1+1):(s1+s2), (s1+1):(s1+s2)] = 1
+
 coeff <- list(alpha.mu = 0.2, alpha.sd = 0.15, beta0.mu = 0.95, beta0.sd = 0.15, 
               beta1.mu = 0.03, beta1.sd = 0.02, gamma.mu = 1, gamma.sd = 0.2, h.mu = 0.2, h.sd = 0.1, 
               delta = 0.5)  # same with [@saavedra_estimating_2013]
 
-parms <- parms_lv2(graph, coeff)
-init <- init_lv2(parms)
-# init <- parms$r
+parms <- parms_lv2_cm(mutual_graph, competitive_graph, coeff)
+init <- init_lv2_cm(parms)
 
 extinct_threshold <- .Machine$double.eps * 100  # threshold of species
-A = sim_ode_auto(model = model_lv2, parms = parms, init = init, steps = 1000, stepwise = 0.1, extinct_threshold = extinct_threshold)
+A = sim_ode_auto(model = model_lv2_cm, parms = parms, init = init, steps = 1000, stepwise = 0.1, extinct_threshold = extinct_threshold)
 matplot(A$out[1:1000, -1], type = 'l', lwd = 1.)
 
-B = sim_ode_press(model = model_lv2, parms = parms, init = init, steps = 1000, stepwise = 0.1, extinct_threshold = extinct_threshold, perturb = perturb_growthrate, iter_steps = 120, isout = T, r.delta = 0.005)
+B = sim_ode_press(model = model_lv2_cm, parms = parms, init = init, steps = 1000, stepwise = 0.1, extinct_threshold = extinct_threshold, perturb = perturb_growthrate, iter_steps = 500, isout = T, r.delta.mu = 0.005, r.delta.sd = 0.)
 ode.nstars = laply(B, function(one) {
   one$nstar
 })
