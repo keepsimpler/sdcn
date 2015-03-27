@@ -1,83 +1,4 @@
 
-#' @title Lotka-Volterra (LV) Equations of Holling type II for mutualistic communities provided by Bastolla et al.
-#' @param time, time step of simulation
-#' @param init, the initial state of the LV system, a vector
-#' @param parms, parameters passed to LV model, a list of:
-#' \describe{
-#'   \item{r}{a vector of the intrinsic growth rates of species}
-#'   \item{C}{the competitive matrix inside plants and animals}
-#'   \item{M}{the mutualistic matrix between plants and animals}
-#'   \item{h}{the saturate coefficient, handling time of species feed}
-#' }
-#' @return the derivation
-#' @import deSolve
-model_lv2 <- function(time, init, parms, ...) {
-  r = parms[[1]]  # intrinsic growth rates
-  C = parms[[2]]  # the competitive matrix
-  M = parms[[3]]  # the mutualistic matrix
-  h = parms[[4]]  # handling time
-  N = init  # initial state
-  dN <- N * ( r - C %*% N + (M %*% N) / (1 + h * M %*% N) )
-  list(c(dN))
-}
-
-#' @title parmaters for mutualistic LV2 model according to the network and the coefficients
-#' @param graph, the interaction topology of mutualistic communities, which is the incidence matrix of a bipartite network
-#' @param coeff, a list of coefficients:
-#' \describe{
-#'    \item{alpha.mu, alpha.sd}{coefficients of the intrinsic growth rates of species}
-#'    \item{beta0.mu, beta0.sd}{the intra-species competition coefficients which determin a uniform distribution in [beta0.mu - beta0.sd, beta0.mu + beta0.sd]}
-#'    \item{beta1.mu, beta1.sd}{the inter-species competition coefficients}
-#'    \item{gamma.mu, gamma.sd}{the inter-species mutualism coefficients}
-#'    \item{delta}{trade-off coefficients of mutualistic interaction strengths}
-#'    \item{h.mu, h.sd}{coefficients of the handling time of species}
-#' }
-#' @return a list of parameters for ode model:
-#' \describe{
-#'   \item{r}{a vector of the intrinsic growth rates of species}
-#'   \item{C}{the competitive matrix inside plants and animals}
-#'   \item{M}{the mutualistic matrix between plants and animals}
-#'   \item{h}{the saturate coefficient, handling time of species feed}
-#' }
-parms_lv2 <- function(graph, coeff) {
-  p <- dim(graph)[1]  # number of Plants
-  a <- dim(graph)[2]  # number of Animals
-  s <- p + a          # number of all Species  
-  with(as.list(coeff),{
-    r = runif(s) * 2 * alpha.sd + (alpha.mu - alpha.sd)
-    C = matrix(0, nrow = s, ncol = s) # initialize a zero matrix
-    C[1:p, 1:p] = runif(p * p) * 2 * beta1.sd + (beta1.mu - beta1.sd) # assign competitive interactions among plants
-    C[(p + 1):s, (p + 1):s] = runif(a * a) * 2 * beta1.sd + (beta1.mu - beta1.sd) # assign competitive interactions among animals
-    diag(C) = runif(s) * 2 * beta0.sd + (beta0.mu - beta0.sd) # assign intra-species competitive interactions
-    
-    edges = sum(graph > 0)  # number of interactions (edges)
-    M = inc_to_adj(graph)  # transfer to adjacency matrix
-    degrees = rowSums(M)  # 
-    M[M > 0] = runif(2 * edges) * 2 * gamma.sd + (gamma.mu - gamma.sd)  # assign inter-species mutualistic interactions
-    old_total_strength = sum(M)
-    ## !leak!
-    M = M / degrees^delta  # trade-off of mutualistic strengths
-    new_total_strength = sum(M)
-    M = M * old_total_strength / new_total_strength
-    
-    h = runif(s) * 2 * h.sd + (h.mu - h.sd)
-    list(r = r, C = C, M = M, h = h)     
-  })
-}
-
-#' @title initial values of state variables, i.e., abundances of species
-#' @description Assign initial values according to two criteria: 1. using the equilibrium values of LV1 model as initial values. 2. If any of the initial values is less than 0, using the intrinsic growth rates as initial values.
-#' @param parms, the parameters assigned to LV2 model
-init_lv2 <- function(parms) {
-  init = solve(parms$C - parms$M) %*% parms$r
-  if (any(init < 0)) {
-    warning('Initial state values is less than 0 !!')
-    #stop('Initial state values is less than 0 !!', init(LV2))
-    init = parms$r
-  }
-  init  
-}
-
 #' @title Simulate ODE dynamics of autonomous systems.The dynamic starts at initialized state variables, and ends in equilibrium (or error where some values of state variables approach infinity?) 
 #' @param model model of ODE dynamics
 #' @param parms parameters assigned to the model
@@ -163,12 +84,47 @@ sim_ode_press <- function(model, parms, init, steps = 1000, stepwise = 1, extinc
   ode.outs
 }
 
-#' @title perturbation that effect on species by increasing/decreasing the intrinsic growth rates of species
+#' @title perturbations that effect on species by increasing/decreasing the intrinsic growth rates of all species
 #' @param parms parameters assigned to the ODE model
 #' @param nstar state values at equilibrium
-#' @param r.delta difference of intrinsic growth rates at each iterating step
-perturb_growthrate <- function(parms, nstar, r.delta = 0.01) {
-  parms$r = parms$r - r.delta
+#' @param r.delta deviation of intrinsic growth rates at each iterating step
+perturb_growthrate <- function(parms, nstar, r.delta.mu = 0.01, r.delta.sd = 0.01) {
+  #set.seed(1)
+  parms$r = parms$r - runif(length(parms$r), min = r.delta.mu - r.delta.sd, max = r.delta.mu + r.delta.sd)
+  list(parms = parms, nstar = nstar)
+}
+
+#' @title perturbations that effect on species by increasing/decreasing the intrinsic growth rates of a part of species
+#' @param parms parameters assigned to the ODE model
+#' @param nstar state values at equilibrium
+#' @param r.delta deviation of intrinsic growth rates at each iterating step
+#' @param perturbed_species the index of perturbed species
+perturb_growthrate_part <- function(parms, nstar, r.delta.mu = 0.01, r.delta.sd = 0.01,  perturbed_species) {
+  
+  parms$r[perturbed_species] = parms$r[perturbed_species] - runif(length(perturbed_species), min = r.delta.mu - r.delta.sd, max = r.delta.mu + r.delta.sd)
+  list(parms = parms, nstar = nstar)
+}
+
+#' @title perturbations that effect on mutualistic interactions by increasing/decreasing strengths of them
+#' @param parms parameters assigned to the ODE model
+#' @param nstar state values at equilibrium
+#' @param gamma.delta deviation of mutualistic interaction strengths at each iterating step
+perturb_mutualistic_strength <- function(parms, nstar, gamma.delta.mu = 0.01, gamma.delta.sd = 0.01) {
+  edges = length(parms$M[parms$M > 0])
+  parms$M[parms$M > 0] = parms$M[parms$M > 0] - runif(edges, min = gamma.delta.mu - gamma.delta.sd, max = gamma.delta.mu + gamma.delta.sd)
+  list(parms = parms, nstar = nstar)
+}
+
+#' @title perturbations that remove one species
+#' @param parms parameters assigned to the ODE model
+#' @param nstar state values at equilibrium
+#' @param extinct_species the removed species
+perturb_primary_extinct <- function(parms, nstar, extinct_species) {
+  nstar = nstar[- extinct_species]  # primary extinction
+  parms$r = parms$r[- extinct_species]
+  parms$C = parms$C[- extinct_species, - extinct_species]
+  parms$M = parms$M[- extinct_species, - extinct_species]
+  parms$h = parms$h[- extinct_species]
   list(parms = parms, nstar = nstar)
 }
 
@@ -180,11 +136,21 @@ fragility <- function(sim.out) {
   trajectory = laply(sim.out, function(one) {
     length(one$extinct.species)
   })
+  resistance2 = sum(trajectory) # the complement area of the trajectory
   trajectory = trajectory[-1] - trajectory[-length(trajectory)]
-  fragility = sum(trajectory^2)
-  fragility
+  fragility.variance = sum(trajectory^2)
+  trajectory.positive = trajectory[trajectory > 0]
+  fragility.entropy = sum(trajectory.positive * log(trajectory.positive))
+  list(trajectory = trajectory, variance = fragility.variance, entropy = fragility.entropy, resistance = length(sim.out), resistance2 = resistance2)
 }
 
+fragility.abund <- function(sim.out) {
+  trajectory.abund <- laply(sim.out, function(one) {
+    sum(one$nstar)
+  })
+  resistance = sum(trajectory.abund)
+  list(resistance = resistance)
+}
 #' @title compute resistance of mutualistic communities in gradual pressed context
 #' @param sim.out output of simulation under gradual pressed conditions (\code{\link{sim_ode_press}})
 #' @return resistance measured by the length of community trajectory

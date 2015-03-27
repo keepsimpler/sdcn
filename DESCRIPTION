@@ -21,7 +21,8 @@ Imports:
     deSolve (>= 1.10-8),
     simecol (>= 0.8-4),
     rootSolve (>= 1.6.5),
-    plyr (>= 1.8.1)
+    plyr (>= 1.8.1),
+    igraph (>= 0.7.1)
 License: What license is it under?
 Suggests: knitr,
     testthat
